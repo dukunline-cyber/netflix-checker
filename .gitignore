@@ -1,0 +1,11 @@
+```
+results/
+__pycache__/
+*.pyc
+*.rar
+*.zip
+*.7z
+*_extracted/
+.env
+venv/
+```

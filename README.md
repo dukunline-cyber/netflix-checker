@@ -14,6 +14,7 @@ Skrip ini memerlukan tools untuk extract file archive:
 
 - **unrar** (untuk file .rar):
   ```bash
+  sudo apt update
   sudo apt install unrar
   ```
 

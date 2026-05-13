@@ -12,8 +12,8 @@ sudo apt install unrar
 ## Usage
 
 ```bash
-# Dari file RAR
-python3 checker.py cookies.rar
+# Dari file RAR (contoh file di repo ini: cookie.rar)
+python3 checker.py cookie.rar
 
 # Dari folder
 python3 checker.py /path/to/folder/
@@ -21,6 +21,14 @@ python3 checker.py /path/to/folder/
 # Single cookie file
 python3 checker.py cookie.txt
 ```
+
+> Setelah menjalankan perintah, skrip akan meminta jumlah thread:
+>
+> ```text
+> [?] Threads (default 5):
+> ```
+>
+> Tekan Enter untuk menggunakan nilai default `5`, atau ketik angka lalu Enter.
 
 ## Format Cookie
 

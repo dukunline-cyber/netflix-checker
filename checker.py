@@ -72,6 +72,13 @@ def parse_cookies(text):
     return cookies
 
 
+def extract_json_value(text, key):
+    token = f'"{key}":"'
+    if token in text:
+        return text.split(token, 1)[1].split('"', 1)[0]
+    return None
+
+
 def check_cookie(filepath):
     with open(filepath, 'r', errors='ignore') as f:
         content = f.read()
@@ -97,12 +104,9 @@ def check_cookie(filepath):
             info = {}
             text = r.text
             try:
-                if '"userEmail":"' in text:
-                    info['email'] = text.split('"userEmail":"')[1].split('"')[0]
-                if '"planName":"' in text:
-                    info['plan'] = text.split('"planName":"')[1].split('"')[0]
-                if '"countryOfSignup":"' in text:
-                    info['country'] = text.split('"countryOfSignup":"')[1].split('"')[0]
+                info['email'] = extract_json_value(text, 'userEmail')
+                info['plan'] = extract_json_value(text, 'planName') or extract_json_value(text, 'planDescription') or extract_json_value(text, 'planNickname')
+                info['country'] = extract_json_value(text, 'countryOfSignup')
             except:
                 pass
             if info or 'profileName' in text or 'memberSince' in text:

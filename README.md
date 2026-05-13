@@ -30,6 +30,8 @@ Skrip ini memerlukan tools untuk extract file archive:
 
 ```bash
 # Dari file RAR (contoh file di repo ini: cookie.rar)
+cd /workspaces/codespaces-blank/netflix-checker
+unrar x cookie.rar
 python3 checker.py cookie.rar
 
 # Dari folder
@@ -38,6 +40,8 @@ python3 checker.py /path/to/folder/
 # Single cookie file
 python3 checker.py cookie.txt
 ```
+
+> Catatan: `cookie.rar` berada di folder `netflix-checker`, jadi pastikan menjalankan perintah dari folder tersebut atau gunakan path lengkap.
 
 > Setelah menjalankan perintah, skrip akan meminta jumlah thread:
 >

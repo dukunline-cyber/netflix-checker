@@ -4,10 +4,27 @@ Bot untuk extract file RAR/ZIP/7z yang berisi cookies Netflix, lalu cek mana yan
 
 ## Install
 
+### Dependencies Python
 ```bash
 pip install -r requirements.txt
-sudo apt install unrar
 ```
+
+### Tools Sistem
+Skrip ini memerlukan tools untuk extract file archive:
+
+- **unrar** (untuk file .rar):
+  ```bash
+  sudo apt install unrar
+  ```
+
+- **7z** (fallback untuk .rar atau untuk file .7z):
+  ```bash
+  sudo apt install p7zip-full
+  ```
+
+- **unzip** (untuk file .zip) - biasanya sudah terinstall di Ubuntu.
+
+> **Catatan**: Pastikan semua tools terinstall sebelum menjalankan skrip. Jika tidak ada, skrip akan error saat extract.
 
 ## Usage
 

@@ -46,10 +46,16 @@ results/
 └── dead/    <- cookie yang expired
 ```
 
+Contoh output LIVE:
+
+```
+[LIVE] cookie.txt - Active account | 4K | user@example.com | BR
+```
+
 ## Features
 
 - Auto extract RAR/ZIP/7z
 - Auto scan semua file, detect mana yang cookie Netflix
 - Multi-threaded checking
 - Hasil dipisah ke folder live/ dan dead/
-- Tampilkan info akun (email, plan, country) jika tersedia
+- Tampilkan info akun (email, kualitas resolusi/plan, country) jika tersedia
